@@ -5,18 +5,20 @@
 (defvar *notify-inbox-emails* nil
   "A list of emails id that needs to be read.")
 
-(defvar *notify-unread-conversations* nil)
+(defvar *notify-unread-conversations* (make-hash-table :test 'equal)
+  "A hashmap for active conversations conversation-id -> unread-flag")
 
 (defcommand notify-chat-new-add (conversation-id)
     ((:string "Conversation id:"))
-  (when (not (member conversation-id *notify-unread-conversations* :test #'string=))
-    (push conversation-id *notify-unread-conversations*)))
+    (setf (gethash conversation-id *notify-unread-conversations*) 'unread))
 
-(defcommand notify-chat-read-add (conversation-id) 
+
+(defcommand notify-chat-unread-flag-add (conversation-id) 
     ((:string "Conversation id :"))
-    (setf *notify-unread-conversations* 
-          (delete conversation-id *notify-unread-conversations* :test #'string=)))
-
+  (let ((conversation-flag (gethash conversation-id *notify-unread-conversations*)))
+    (when conversation-flag
+	  (setf (gethash conversation-id *notify-unread-conversations*) 'read))))
+	  
 (defcommand notify-email-new-add (id) 
     ((:string "Email id :"))
   (when (not (member id *notify-inbox-emails* :test #'string=))
@@ -29,11 +31,17 @@
 
 (defcommand notify-chats-reset () ()
   "Clear all chats."
-  (setq *notify-unread-conversations* nil))
+  (setq *notify-unread-conversations* (make-hash-table :test 'equal)))
 
 (defcommand notify-emails-reset () ()
   "Clear all emails."
   (setf *notify-inbox-emails* nil))
+
+(defun get-unread-conversations ()
+  (loop for conv-flag being the hash-values of *notify-unread-conversations*
+     counting (eql conv-flag 'unread) into unread-conv-counter
+     finally (return unread-conv-counter)))
+       
 
 (defun notify-as-string (&rest r)
   (declare (ignore r))
@@ -42,10 +50,10 @@
                                            "^1*^B"
                                            "")
                        (length *notify-inbox-emails*))
-               (format nil " CHATS(~a~a^b^n) " (if (> (length *notify-unread-conversations*) 0)
+               (format nil " CHATS(~a~a^b^n) " (if (> (get-unread-conversations) 0)
                                            "^1*^B"
                                            "")
-                       (length *notify-unread-conversations*))))
+                       (get-unread-conversations))))
 
 
 (defcommand notify-show-emails ()
@@ -53,18 +61,5 @@
   "Messages all emails"
   (message "Email ids: ~a" *notify-inbox-emails*))
 
-(defcommand notify-show-conversations ()
-  ()
-  "Messages all unread conversations"
-  (message "Conversations ids: ~a" *notify-unread-conversations*))
-
-;; (defvar *notify-map*
-;;   (let ((m (make-sparse-keymap)))
-;;     (define-key m (kbd "a")     "notifications-add")
-;;     (define-key m (kbd "r")     "notifications-reset")
-;;     (define-key m (kbd "d")     "notifications-delete-first")
-;;     (define-key m (kbd "D")     "notifications-delete-last")
-;;     (define-key m (kbd "s")     "notifications-show")
-;;     m))
 
 

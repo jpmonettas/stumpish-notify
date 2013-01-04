@@ -7,10 +7,9 @@ def send_chat_notification(sender, message, conversation):
     sender_name=sender.split("@")[0]
     call([stumpish_cmd, "notify-chat-new-add", str(conversation)])
 
-def send_conversation_readed_callback(conversation):
-    call([stumpish_cmd, "notify-chat-read-add", str(conversation)])
+def send_conversation_unread_flag_changed(conversation):
+    call([stumpish_cmd, "notify-chat-unread-flag-add", str(conversation)])
     
-
 def send_email_new_notification(id, author, subject):
     call([stumpish_cmd, "notify-email-new-add", id])
 
@@ -24,10 +23,10 @@ def chat_notification_callback(account, sender, message, conversation, flags):
 
 def chat_conversation_updated_callback(conversation, type):
     print "Pidgin conversation ", conversation, " with type ", type
-    if type==11:
+    if type==4:
         print "Pidgin conversation ", conversation, " was read"
-        send_conversation_readed_callback(conversation)
-
+        send_conversation_unread_flag_changed(conversation)
+        
 def new_email_notification_callback(id, author, subject):
     print "Thunderbird id=", id, " author=", author, " subject=", subject
     send_email_new_notification(id, author, subject)
@@ -51,9 +50,20 @@ bus = dbus.SessionBus()
 #    int32 46658
 #    uint32 2
 
+# bus.add_signal_receiver(chat_notification_callback,
+#                         dbus_interface="im.pidgin.purple.PurpleInterface",
+#                         signal_name="ReceivedImMsg")
+
+# signal sender=:1.40 -> dest=(null destination) serial=11676 path=/im/pidgin/purple/PurpleObject; interface=im.pidgin.purple.PurpleInterface; member=WroteImMsg
+#    int32 2266
+#    string "ib.qatester@gmail.com/gmail.B1A23B27"
+#    string "va"
+#    int32 383403
+#    uint32 2
+
 bus.add_signal_receiver(chat_notification_callback,
                         dbus_interface="im.pidgin.purple.PurpleInterface",
-                        signal_name="ReceivedImMsg")
+                        signal_name="WroteImMsg")
 
 # signal sender=:1.1 -> dest=(null destination) serial=1102 path=/im/pidgin/purple/PurpleObject; interface=im.pidgin.purple.PurpleInterface; member=ConversationUpdated
 #    int32 16324
